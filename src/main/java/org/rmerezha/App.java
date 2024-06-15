@@ -3,18 +3,17 @@ package org.rmerezha;
 import javafx.application.Application;
 import javafx.geometry.Point2D;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.*;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class App extends Application {
@@ -23,6 +22,29 @@ public class App extends Application {
         launch(args);
     }
 
+    private static final List<Color> COLORS = List.of(
+            Color.RED,
+            Color.GREEN,
+            Color.BLUE,
+            Color.BLACK,
+            Color.OLIVE,
+            Color.YELLOW,
+            Color.ORANGE,
+            Color.PURPLE,
+            Color.PINK,
+            Color.BROWN,
+            Color.CYAN,
+            Color.MAGENTA,
+            Color.LIME,
+            Color.INDIGO,
+            Color.VIOLET,
+            Color.GOLD,
+            Color.SILVER,
+            Color.TURQUOISE,
+            Color.CRIMSON,
+            Color.NAVY,
+            Color.TEAL
+    );
 
     private static final Pane PANE = new Pane();
     private static final double WIDTH = 1200;
@@ -38,24 +60,30 @@ public class App extends Application {
 
     private static int counter;
 
+    private static int count = 1;
+
+
     @Override
     public void start(Stage stage) {
 
-        System.out.println("Enter 0 or 1:");
+
+        System.out.println("Enter 0(bfs) or 1(dfs)");
         Scanner sc = new Scanner(System.in);
-
         int i = sc.nextInt();
-
+        sc.close();
         List<Point> points = drawCircles();
         Graph graph = new Graph(3414);
         double[][] matrix = graph.generatedAdjacencyMatrix(NUM_CIRCLES);
-
-        if (i == 1) {
-            drawOrientedGraphs(matrix, points);
-        } else if (i == 0) {
-            drawNonOrientedGraphs(matrix, points);
+        Button btn = new Button();
+        btn.setText("next");
+        Deque<Action> actions;
+        if (i == 0) {
+            actions = bfsAndDraw(matrix, points);
+        } else if (i == 1) {
+            actions = dfsAndDraw(matrix, points);
         } else {
-            throw new IllegalArgumentException();
+            System.out.println("invalid number");
+            return;
         }
 
         int size = matrix.length;
@@ -63,9 +91,61 @@ public class App extends Application {
             System.out.println(Arrays.toString(matrix[j]));
         }
 
+        btn.setOnAction(e -> actions.pop().doit());
+
         setDefaultSettings(stage);
+        PANE.getChildren().add(btn);
         stage.show();
 
+    }
+
+    public Deque<Action> dfsAndDraw(double[][] adjacencyMatrix, List<Point> points) {
+        int n = adjacencyMatrix.length;
+        boolean[] visited = new boolean[n];
+        Deque<Action> actions = new ArrayDeque<>();
+        dfs(0, adjacencyMatrix, points, visited, actions);
+        return actions;
+    }
+
+    private void dfs(int current, double[][] adjacencyMatrix, List<Point> points, boolean[] visited, Deque<Action> actions) {
+        visited[current] = true;
+        for (int i = 0; i < adjacencyMatrix.length; i++) {
+            if (adjacencyMatrix[current][i] != 0 && !visited[i]) {
+                int finalI = i;
+                actions.add(() -> drawArc(points, current + 1, finalI + 1, true, Color.BLACK, true));
+                dfs(i, adjacencyMatrix, points, visited, actions);
+            }
+        }
+    }
+
+    public Deque<Action> bfsAndDraw(double[][] adjacencyMatrix, List<Point> points) {
+        int n = adjacencyMatrix.length;
+        int colorCount = 0;
+        boolean[] visited = new boolean[n];
+        Queue<Integer> queue = new LinkedList<>();
+        queue.add(0);
+        visited[0] = true;
+        Deque<Action> result = new ArrayDeque<>();
+        while (!queue.isEmpty()) {
+            int current = queue.poll();
+            boolean iii = false;
+            for (int i = 0; i < n; i++) {
+                if (adjacencyMatrix[current][i] != 0 && !visited[i]) {
+                    int finalI = i;
+                    int finalColorCount = colorCount;
+                    result.add(() -> drawArc(points, current + 1, finalI + 1, true, COLORS.get(finalColorCount), false));
+                    queue.add(i);
+                    visited[i] = true;
+                    iii=true;
+                }
+            }
+
+            if (iii) {
+                colorCount++;
+            }
+        }
+
+        return result;
     }
 
     private void drawNonOrientedGraphs(double[][] matrix, List<Point> points) {
@@ -92,20 +172,20 @@ public class App extends Application {
 
     }
 
-    private void drawOrientedGraphs(double[][] matrix, List<Point> points) {
+    private Deque<Action> drawOrientedGraphs(double[][] matrix, List<Point> points) {
 
         int size = matrix.length;
-
+        Deque<Action> result = new ArrayDeque<>();
         for (int i = 0; i < size * size; i++) {
             int q = i % size;
             int w = i / size;
 
             if (matrix[q][w] == 1) {
-                drawArc(points, q + 1, w + 1, true);
+                result.add(() -> drawArc(points, q + 1, w + 1, true));
             }
         }
 
-
+        return result;
     }
 
     private Point findHeight(Point p1, Point p2, double heightLength) {
@@ -192,9 +272,10 @@ public class App extends Application {
         return pp1.distance(pp2);
     }
 
-    private void drawArc(Point p1, Point p2, double k, boolean withArrowHead) {
+
+    private void drawArc(Point p1, Point p2, double k, boolean withArrowHead, Color color, boolean withNums) {
         Path path = new Path();
-        path.setStroke(Color.BLACK);
+        path.setStroke(color);
         path.setStrokeWidth(1);
 
         MoveTo moveTo = new MoveTo();
@@ -217,7 +298,18 @@ public class App extends Application {
             drawArrowHead(height, p2);
         }
 
+        if (withNums) {
+            Text text = new Text(Integer.toString(count++));
+            text.setFont(new Font(35));
+            text.setX(p2.x());
+            text.setY(p2.y());
+            PANE.getChildren().add(text);
+        }
         PANE.getChildren().add(path);
+    }
+
+    private void drawArc(Point p1, Point p2, double k, boolean withArrowHead, boolean withNums) {
+        drawArc(p1,p2,k,withArrowHead, Color.BLACK, withNums);
     }
 
     private void drawArrowHead(Point startPoint, Point endPoint) {
@@ -267,7 +359,7 @@ public class App extends Application {
         }
     }
 
-    void drawArc(List<Point> points, int i1, int i2, boolean withArrowHead) {
+    void drawArc(List<Point> points, int i1, int i2, boolean withArrowHead, Color color, boolean withNums) {
         if (i1 == i2) {
             createCirclePath(points.get(i1 - 1));
             return;
@@ -293,24 +385,27 @@ public class App extends Application {
         if (onOneLine(line3, p1, p2)) {
             if (i1 == 1) {
                 int k = (points.size() + 1 - i2);
-                drawArc(p1, p2, k == 1 ? 2 : k - 1, withArrowHead);
+                drawArc(p1, p2, k == 1 ? 2 : k - 1, withArrowHead, color, withNums);
             } else if (i2 == 1) {
                 int k = (points.size() + 1 - i1);
-                drawArc(p1, p2, k == 1 ? 2 : k - 1, withArrowHead);
+                drawArc(p1, p2, k == 1 ? 2 : k - 1, withArrowHead, color, withNums);
             } else {
                 int k = Math.abs(i1 - i2);
-                drawArc(p1, p2, k == 1 ? 2 : k, withArrowHead);
+                drawArc(p1, p2, k == 1 ? 2 : k, withArrowHead, color, withNums);
             }
 
         } else if (onOneLine(line2, p1, p2) || onOneLine(line1, p1, p2)) {
             int k = Math.abs(i1 - i2);
-            drawArc(p1, p2, k == 1 ? 2 : k - 1, withArrowHead);
+            drawArc(p1, p2, k == 1 ? 2 : k - 1, withArrowHead, color, withNums);
         } else {
             int k = Math.abs(i1 - i2);
-            drawArc(p1, p2, k == 1 ? 2 : k + 3, withArrowHead);
+            drawArc(p1, p2, k == 1 ? 2 : k + 3, withArrowHead, color, withNums);
         }
+    }
 
 
+    void drawArc(List<Point> points, int i1, int i2, boolean withArrowHead) {
+       drawArc(points, i1, i2, withArrowHead, Color.BLACK, false);
     }
 
     private void createCirclePath(Point p) {
@@ -318,7 +413,6 @@ public class App extends Application {
 
         path.getElements().add(new MoveTo(p.x() - RADIUS, p.y()));
 
-        // Рисуем окружность
         for (int angle = 1; angle <= 360; angle++) {
             double x = p.x() - 2 * RADIUS + RADIUS * Math.cos(Math.toRadians(angle));
             double y = p.y() + RADIUS * Math.sin(Math.toRadians(angle));
