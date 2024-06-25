@@ -8,12 +8,12 @@ mvn javafx:run
 bfs
 
 <video width="480" height="360" controls>
-  <source src="https://raw.githubusercontent.com/rmerezha/lab5/master/bfs.mkv" type="video/mp4">
+  <source src="https://raw.githubusercontent.com/rmerezha/lab5/master/bfs.mkv" type="video/x-matroska">
 </video>
 
 
 dfs
 
 <video width="480" height="360" controls>
-  <source src="https://raw.githubusercontent.com/rmerezha/lab5/master/dfs.mkv" type="video/mp4">
+  <source src="https://raw.githubusercontent.com/rmerezha/lab5/master/dfs.mkv" type="video/x-matroska">
 </video>
