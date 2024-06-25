@@ -5,9 +5,15 @@ git clone https://github.com/rmerezha/lab3.git
 cd lab3
 mvn javafx:run
 ```
+bfs:
+
+<video width="640" height="480" controls>
+  <source src="bfs.mkv" type="video/webm">
+</video>
 
 
-![null](ex1.jpg)
+dfs:
 
-![null](ex2.jpg)
-
+<video width="640" height="480" controls>
+  <source src="dfs.mkv" type="video/webm">
+</video>
